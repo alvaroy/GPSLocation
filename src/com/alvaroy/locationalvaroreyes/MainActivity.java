@@ -91,12 +91,8 @@ public class MainActivity extends ActionBarActivity {
 						Intent emailIntent = new Intent(Intent.ACTION_SEND);
 						// set the type to 'email'
 						emailIntent.setType("vnd.android.cursor.dir/email");
-						String to[] = {"alvaroy@outlook.com"};
-						emailIntent.putExtra(Intent.EXTRA_EMAIL, to);
 						// the attachment
 						emailIntent.putExtra(Intent.EXTRA_STREAM, u);
-						// the mail subject
-						emailIntent.putExtra(Intent.EXTRA_SUBJECT, "TXT File");
 						startActivity(Intent.createChooser(emailIntent , "Enviando correo..."));
 					} else {
 						AlertDialog.Builder dialog = new AlertDialog.Builder(
