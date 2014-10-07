@@ -9,7 +9,7 @@
         android:id="@+id/textView1"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Escriba su nombre:"
+        android:text="Escriba el nombre de archivo:"
         android:textAppearance="?android:attr/textAppearanceMedium" />
 
     <EditText
@@ -26,12 +26,6 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Comenzar" />
-
-    <Button
-        android:id="@+id/button2"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Detener" />
 
     <Button
         android:id="@+id/button3"

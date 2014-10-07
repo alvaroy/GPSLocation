@@ -1,15 +1,29 @@
 package com.alvaroy.locationalvaroreyes;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
+import android.provider.OpenableColumns;
 import android.support.v4.app.Fragment;
 import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
@@ -22,28 +36,99 @@ public class MainActivity extends ActionBarActivity {
         setContentView(R.layout.activity_main);
         if(savedInstanceState == null) {
         	getSupportFragmentManager().beginTransaction().
-        		add(R.layout.container, new PlaceholderFragment()).commit();
+        		add(R.id.main, new PlaceholderFragment()).commit();
         }
     }
     
     public static class PlaceholderFragment extends Fragment implements LocationListener {
 
     	protected Button mButton;
-    	protected EditText name;
+    	protected Button sButton;
+    	protected static EditText name;
 		protected boolean mStarted;
 		private LocationManager mLocationManager;
-		private PlaceholderFragment listener = this;
 		private String TAG = PlaceholderFragment.class.getSimpleName();
-		double mLat;
-		double mLong;
-		double mAlt;
-		double mSpeed;
+		private View rootView;
     	
 		@Override
-		public void onLocationChanged(Location location) {
-			mLat = location.getLatitude();
-			mLong = location.getLongitude();
-			mAlt = location.getAltitude();			
+		public View onCreateView(LayoutInflater inflater,
+				ViewGroup container,
+				Bundle savedInstanceState) {
+			rootView = inflater.inflate(R.layout.container, container, false);
+			mButton = (Button) rootView.findViewById(R.id.button1);
+			sButton = (Button) rootView.findViewById(R.id.button4);
+			name = (EditText) rootView.findViewById(R.id.editText1);
+			
+			mButton.setOnClickListener(new OnClickListener() {
+				
+				@Override
+				public void onClick(View v) {
+					if(name.getText().toString().isEmpty()) {
+						AlertDialog.Builder dialog = new AlertDialog.Builder(
+								getActivity());
+						dialog.setMessage("Escriba un nombre para el archivo antes de comenzar!").setPositiveButton("OK", null);
+						dialog.show();
+					} else {
+						if(mStarted) {
+							stopCapturing();
+							Toast.makeText(rootView.getContext(), "Detenido", Toast.LENGTH_SHORT).show();
+							mStarted = !mStarted;
+							mButton.setText("Comenzar");
+						} else {
+							startCapturing();
+						}
+					}					
+				}
+			});
+			
+			sButton.setOnClickListener(new OnClickListener() {
+				
+				@Override
+				public void onClick(View arg0) {
+					File f = new File(Environment.getExternalStorageDirectory()+"/Android/data/com.alvaroy.locationalvaroreyes"+File.separator+name.getText().toString()+".txt");
+					if(f.exists()) { 
+						Uri u = Uri.fromFile(f);
+						Intent emailIntent = new Intent(Intent.ACTION_SEND);
+						// set the type to 'email'
+						emailIntent.setType("vnd.android.cursor.dir/email");
+						String to[] = {"alvaroy@outlook.com"};
+						emailIntent.putExtra(Intent.EXTRA_EMAIL, to);
+						// the attachment
+						emailIntent.putExtra(Intent.EXTRA_STREAM, u);
+						// the mail subject
+						emailIntent.putExtra(Intent.EXTRA_SUBJECT, "TXT File");
+						startActivity(Intent.createChooser(emailIntent , "Enviando correo..."));
+					} else {
+						AlertDialog.Builder dialog = new AlertDialog.Builder(
+								getActivity());
+						dialog.setMessage("El archivo con ese nombre no existe!").setPositiveButton("OK", null);
+						dialog.show();
+					}
+				};
+			});
+			
+			return rootView;
+		}
+
+		@Override
+		public void onLocationChanged(Location location) {	
+			try {
+				File f = new File(Environment.getExternalStorageDirectory()+"/Android/data/com.alvaroy.locationalvaroreyes");	
+				f.mkdirs();
+				f = new File(f.getAbsolutePath()+File.separator+name.getText().toString()+".txt");
+				String separator = System.getProperty("line.separator");
+				FileOutputStream fOut = new FileOutputStream(f, true);
+				OutputStreamWriter osw = new OutputStreamWriter(fOut); 
+				osw.append(String.valueOf(location.getLongitude())+","+String.valueOf(location.getLatitude())+","+String.valueOf(location.getAltitude()));
+				osw.append(separator);
+				osw.flush();
+			    osw.close();
+			    Log.i(TAG, "File wrote");
+			} catch (FileNotFoundException e) {
+				Log.i(TAG, "A");
+			} catch (IOException e) {
+				Log.i(TAG, "B");
+			}
 		}
 		
 		@Override
@@ -83,50 +168,28 @@ public class MainActivity extends ActionBarActivity {
 		}
     	
 		public void startCapturing() {
-			boolean gps_enabled = true, network_enabled = true;
-			mLocationManager = (LocationManager) getActivity()
-					.getSystemService(Context.LOCATION_SERVICE);
+			boolean gps_enabled = true;
+			mLocationManager = (LocationManager) rootView.getContext().getSystemService(Context.LOCATION_SERVICE);
 
 			try {
 				gps_enabled = mLocationManager
 						.isProviderEnabled(LocationManager.GPS_PROVIDER);
-			} catch (Exception ex) {
-
+			} catch (Exception ex) {			
 			}
-			try {
-				network_enabled = mLocationManager
-						.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
-			} catch (Exception ex) {
-
-			}
-			Log.d(TAG, "gps_enabled " + gps_enabled + " network_enabled "
-					+ network_enabled);
-			if (!gps_enabled || !network_enabled) {
+			
+			Log.d(TAG, "gps_enabled " + gps_enabled);
+			if (!gps_enabled ) {
 				AlertDialog.Builder dialog = new AlertDialog.Builder(
 						getActivity());
-				dialog.setMessage("GPS no esta habilitado!").setPositiveButton(
-						"OK",
-						new DialogInterface.OnClickListener() {
-
-							@Override
-							public void onClick(
-									DialogInterface paramDialogInterface,
-									int paramInt) {
-								// TODO Auto-generated method stub
-								// Intent myIntent = new Intent(
-								// Settings.ACTION_LOCATION_SOURCE_SETTINGS);
-								// getActivity().startActivity(myIntent);
-							}
-						});
+				dialog.setMessage("GPS no esta habilitado!").setPositiveButton("OK", null);
 				dialog.show();
 
 			} else {
-				mLocationManager.requestLocationUpdates(
-						LocationManager.GPS_PROVIDER, 0, 0, listener);
-				Toast.makeText(getActivity(), "Started", Toast.LENGTH_SHORT)
+				mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, this);
+				Toast.makeText(getActivity(), "Comenzado", Toast.LENGTH_SHORT)
 						.show();
 				mStarted = !mStarted;
-				mButton.setText("STOP");
+				mButton.setText("Detener");
 			}
 		}
 		
